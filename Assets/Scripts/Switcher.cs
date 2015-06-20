@@ -4,20 +4,23 @@ using System.Collections;
 
 public class Switcher : MonoBehaviour
 {
-	#region Fields
+    #region Fields
 
     private Button buton;
     private RectTransform rectTransButton;
     private RectTransform rectTransOnOffSlider;
-    private Image background;
+    private Image backgroundOn;
+    private Image backgroundOff;
     public Color onColor;
     public Color offColor;
+    public Color disbledColor;
 
     [SerializeField]
     private bool isOn;
     public bool IsOn
     {
         get { return isOn; }
+        set { SetStatus(value); }
     }
 
     [SerializeField]
@@ -26,10 +29,10 @@ public class Switcher : MonoBehaviour
     [SerializeField]
     private float waitTime = 0.01f;
 
-	#endregion
+    #endregion
 
 
-	#region MonoBehavior Methods
+    #region MonoBehavior Methods
 
     private void Awake()
     {
@@ -37,25 +40,40 @@ public class Switcher : MonoBehaviour
         this.buton.onClick.AddListener(delegate { SetStatus(!this.isOn); });
         this.rectTransButton = this.buton.GetComponent<RectTransform>();
         this.rectTransOnOffSlider = this.GetComponent<RectTransform>();
-        this.background = transform.FindChild("BackGround").GetComponent<Image>();
+        this.backgroundOn = transform.FindChild("TextContainer/ON").GetComponent<Image>();
+        this.backgroundOff = transform.FindChild("TextContainer/OFF").GetComponent<Image>();
+
+        //make the button size corret, since layout components can not be apllied because the hierarchy structure
+        //if you Switcher has the risk to be resized on game, put this block code below on a Update method to keep the button's size
+        var switcherRectTransform = this.transform as RectTransform;
+        this.rectTransButton.pivot = Vector2.up;
+        this.rectTransButton.anchoredPosition = Vector2.zero;
+        this.rectTransButton.anchorMax = Vector2.up;
+        this.rectTransButton.anchorMin = Vector2.up;
+        this.rectTransButton.sizeDelta = new Vector2(switcherRectTransform.sizeDelta.x / 2, switcherRectTransform.sizeDelta.y);
     }
 
-	#endregion
-
-	#region Public Methods 
-
-    public void SetStatus(bool isOn)
+    private void Start()
     {
-        StartCoroutine(!this.isOn ? "SlideButtonOn" : "SlideButtonOff");
+        SetStatus(false);
+    }
+
+    #endregion
+
+
+    #region Private Methods
+
+    private void SetStatus(bool isOn)
+    {
+        StartCoroutine(isOn ? "SlideButtonOn" : "SlideButtonOff");
         this.isOn = isOn;
     }
 
-	#endregion
-
-	#region Private Methods
-
     private IEnumerator SlideButtonOn()
     {
+        this.backgroundOff.color = this.disbledColor;
+        this.backgroundOn.color = this.onColor;
+
         while (this.rectTransButton.anchoredPosition.x + this.slideFactor / 2 <= this.rectTransOnOffSlider.sizeDelta.x / 2)
         {
             this.rectTransButton.anchoredPosition =
@@ -65,15 +83,14 @@ public class Switcher : MonoBehaviour
             yield return new WaitForSeconds(this.waitTime);
         }
 
-        this.background.color = this.onColor;
-
         if (!(this.rectTransButton.anchoredPosition.x + this.slideFactor / 2 <= this.rectTransOnOffSlider.sizeDelta.x / 2))
             StopCoroutine("SlideButtonOn");
     }
 
     private IEnumerator SlideButtonOff()
     {
-        this.background.color = this.offColor;
+        this.backgroundOn.color = this.disbledColor;
+        this.backgroundOff.color = this.offColor;
 
         while (this.rectTransButton.anchoredPosition.x / 2 >= this.slideFactor / 2)
         {
@@ -88,5 +105,5 @@ public class Switcher : MonoBehaviour
             StopCoroutine("SlideButtonOff");
     }
 
-	#endregion
+    #endregion
 }
